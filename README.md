@@ -13,46 +13,74 @@ state and is being actively
 developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 [![Lifecycle:
 stable](https://img.shields.io/badge/lifecycle-stable-green.svg)](https://www.tidyverse.org/lifecycle/#stable)
-[![](https://img.shields.io/badge/devel%20version-0.1.1-blue.svg)](https://github.com/Nicolas-Schmidt/BayesSPsurv)
+[![](https://img.shields.io/badge/devel%20version-0.1.2-blue.svg)](https://github.com/Nicolas-Schmidt/BayesSPsurv)
 [![License:
 MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 <!-- badges: end -->
 
-Bayesian parametric spatial split-population survival models for
-clustered event processes. The models account for both structural and
-spatial heterogeneity among “at risk” and “immune” populations, and
-incorporates time-varying covariates. This package currently implements
-Weibull, Exponential and Log-logistic forms for the duration component,
-and includes functions for a series of diagnostic tests and plots to
-easily visualize convergence and spatial effects. The user can also
-create their own spatial weights matrix based on their units and
+### Description
+
+Parametric spatial split-population (SP) survival models for clustered
+event processes. The models account for both structural and spatial
+heterogeneity among “at risk” and “immune” populations, and incorporates
+time-varying covariates. This package currently implements Weibull,
+Exponential and Log-logistic forms for the duration component, and
+includes functions for a series of diagnostic tests and plots to easily
+visualize autocorrelation, convergence and spatial effects. The user can
+also create their own spatial weights matrix based on their units and
 adjacencies of interest, making the use of these models flexible and
 broadly applicable to a variety of research areas.
 
 ### Installation
 
-``` r
-# Install speech from CRAN
-install.packages("BayesSPsurv")
+The latest version of the package (`0.1.1`) is available on [CRAN
+R](https://CRAN.R-project.org/package=BayesSPsurv):
 
-# The development version from GitHub:
+``` r
+install.packages("BayesSPsurv")
+```
+
+To install the development version from GitHub:
+
+``` r
 if (!require("remotes")) install.packages("remotes")
 remotes::install_github("Nicolas-Schmidt/BayesSPsurv")
 ```
 
 ### Functions
 
-| Function         | Description                                                                                                          |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `spatialSPsurv`  | Markov Chain Monte Carlo (MCMC) to run time-varying Bayesian split population survival model with spatial frailties. |
-| `exchangeSPsurv` | Markov Chain Monte Carlo (MCMC) to run Bayesian split population survival model with exchangeable frailties.         |
-| `pooledSPsurv`   | Markov Chain Monte Carlo (MCMC) to run Bayesian split population survival model with no frailties                    |
-| `summary`        | Returns a summary of exchangeSPsurv, pooledSPsurv or spatialSPsurv object via `coda::summary.mcmc`.                  |
-| `spatial_SA`     | Generates a spatial weights matrix with units and adjacencies defined by the user.                                   |
-| `SPstats`        | A function to calculate the deviance information criterion (DIC) and Log-likelihood for fitted model oupts.          |
+| Function          | Description                                                                                                          |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `spatialSPsurv`   | Markov Chain Monte Carlo (MCMC) to run time-varying Bayesian split population survival model with spatial frailties. |
+| `exchangeSPsurv`  | Markov Chain Monte Carlo (MCMC) to run Bayesian split population survival model with exchangeable frailties.         |
+| `pooledSPsurv`    | Markov Chain Monte Carlo (MCMC) to run Bayesian split population survival model with no frailties.                   |
+| `plot_JointCount` | Conducts Join Count tests to assess spatial clustering or dispersion of categorical variables in the data.           |
+| `plot_Moran.I`    | Implements Global Moran I test to evaluate spatial autocorrelation in units’ risk propensity in the data.            |
+| `summary`         | Returns a summary of exchangeSPsurv, pooledSPsurv or spatialSPsurv object via `coda::summary.mcmc`.                  |
+| `spatial_SA`      | Generates a spatial weights matrix with units and adjacencies defined by the user.                                   |
+| `SPstats`         | A function to calculate the deviance information criterion (DIC) and Log-likelihood for fitted model oupUts.         |
 
 ### Example
+
+### Data
+
+We illustrate the functionality of `BayesSPsurv` using data from Walter
+(2015) that is included and described in the package.
+
+### Bayesian Spatial Split-Population (SP) Survival Model
+
+`spatialSPsurv` estimates the Bayesian Spatial split-population survival
+(cure) model, which includes not only time-varying covariates but also
+spatially autocorrelated frailties in the model’s split and survival
+stage. To allow for easy replication, the examples below run a low
+number of iterations (N).
+
+`spatialSPsurv` Weibull model with N = 15,000 is
+[here](https://github.com/Nicolas-Schmidt/BayesSPsurv/tree/master/data-raw).
+
+`spatialSPsurv` Log-Logistic model with N = 15,000 is
+[here](https://github.com/Nicolas-Schmidt/BayesSPsurv/tree/master/data-raw/data-raw-loglog).
 
 ``` r
 
@@ -134,9 +162,9 @@ SPstats(model)
 #> $Loglik
 #> [1] 23338.27
 
-# ~~~~~~~~~~~~
-# Map
-# ~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~
+# Choropleth Map
+# ~~~~~~~~~~~~~~~
 
 spw   <- matrix(apply(model$W, 2, mean), ncol = 1, nrow = ncol(model$W))
 ccode <- colnames(model$W)
@@ -151,7 +179,17 @@ rworldmap::mapCountryData(map, nameColumnToPlot = 'spw')
 
 <img src="man/figures/README-unnamed-chunk-2-1.png" width="100%" />
 
-## exchangeSPsurv
+### Bayesian Exchangeable Split-Population (SP) Survival Model
+
+This model includes nonspatial unit-specific i.i.d frailties in the
+model’s split-stage (Vi) and survival stage (Wi) as well as time-varying
+covariates in each of these two stages.
+
+`exchangeSPsurv` Weibull model with N = 15,000 is
+[here](https://github.com/Nicolas-Schmidt/BayesSPsurv/tree/master/data-raw).
+
+`exchangeSPsurv` Log-Logistic model with N = 15,000 is
+[here](https://github.com/Nicolas-Schmidt/BayesSPsurv/tree/master/data-raw/data-raw-loglog).
 
 ``` r
 walter <- spduration::add_duration(Walter_2015_JCR,"renewed_war", 
@@ -172,7 +210,7 @@ model <-
         LY       = 'lastyear',
         S        = 'S' ,
         data     = walter,
-        N        = 100,
+        N        = 500,
         burn     = 10,
         thin     = 10,
         w        = c(1,1,1),
@@ -192,3 +230,72 @@ ggplot(w_country, aes(x = reorder(factor(name), value, FUN = median), y =  value
 ```
 
 <img src="man/figures/README-unnamed-chunk-3-1.png" width="100%" />
+
+## Bayesian Pooled Split-Population (SP) Survival Model
+
+Bayesian SP survical model without unit-specific i.i.d frailties.
+
+`pooledSPsurv` Weibull model with N = 15,000 is
+[here](https://github.com/Nicolas-Schmidt/BayesSPsurv/tree/master/data-raw).
+
+`pooledSPsurv` Log-Logistic model with N = 15,000 is
+[here](https://github.com/Nicolas-Schmidt/BayesSPsurv/tree/master/data-raw/data-raw-loglog).
+
+``` r
+
+
+set.seed(123456)
+
+model <-
+     pooledSPsurv(
+         duration = duration ~ fhcompor1 + lgdpl + comprehensive + victory +
+             instabl + intensityln + ethfrac + unpko,
+         immune   = cured ~ fhcompor1 + lgdpl + victory,
+         Y0       = 't.0',
+         LY       = 'lastyear',
+         data     = walter,
+         N        = 500,
+         burn     = 10,
+         thin     = 10,
+         w        = c(1,1,1),
+         m        = 10,
+         form     = "Weibull"
+     )
+
+print(model)
+#> Call:
+#> pooledSPsurv(duration = duration ~ fhcompor1 + lgdpl + comprehensive + 
+#>     victory + instabl + intensityln + ethfrac + unpko, immune = cured ~ 
+#>     fhcompor1 + lgdpl + victory, Y0 = "t.0", LY = "lastyear", 
+#>     data = walter, N = 500, burn = 10, thin = 10, w = c(1, 1, 
+#>         1), m = 10, form = "Weibull")
+#> 
+#> 
+#> Iterations = 1:49
+#> Thinning interval = 1 
+#> Number of chains = 1 
+#> Sample size per chain = 49 
+#> 
+#> Empirical mean and standard deviation for each variable,
+#> plus standard error of the mean:
+#> 
+#> 
+#> Duration equation: 
+#>                     Mean         SD   Naive SE Time-series SE
+#> (Intercept)    2.3748909 1.38333158 0.19761880     0.64033808
+#> fhcompor1     -0.9225435 0.62636551 0.08948079     0.13530712
+#> lgdpl         -0.1006686 0.12871863 0.01838838     0.05205719
+#> comprehensive -0.8376250 0.40244531 0.05749219     0.05749219
+#> victory        0.3702996 0.44200695 0.06314385     0.06314385
+#> instabl        0.8792065 0.55504640 0.07929234     0.07929234
+#> intensityln    0.1185066 0.09089489 0.01298498     0.02403753
+#> ethfrac       -0.3734596 0.71246591 0.10178084     0.13237277
+#> unpko          0.5947845 0.60326265 0.08618038     0.08618038
+#> 
+#> Inmune equation: 
+#>                    Mean       SD  Naive SE Time-series SE
+#> (Intercept)  0.01876845 2.163802 0.3091146      0.4111774
+#> fhcompor1    1.25950280 3.002383 0.4289118      0.6366892
+#> lgdpl       -1.86099795 1.670992 0.2387131      0.2986771
+#> victory     -0.24415725 2.435839 0.3479770      0.3479770
+```

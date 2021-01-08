@@ -1,7 +1,7 @@
 Package: BayesSPsurv
 Type: Package
 Title: Bayesian Spatial Split Population Survival Model
-Version: 0.1.1
+Version: 0.1.2
 Authors@R: c(person(given = "Brandon L.",
                     family = "Bolte",
                     role = c("aut")),
@@ -44,7 +44,7 @@ Imports: MCMCpack, FastGP, stats, Rcpp (>= 1.0.3), coda, dplyr,
         reshape2, ggplot2, ape
 Suggests: spduration, countrycode
 NeedsCompilation: yes
-Packaged: 2020-11-24 18:20:27 UTC; Nicolás Schmidt
+Packaged: 2021-01-08 20:52:20 UTC; Nicolás Schmidt
 Author: Brandon L. Bolte [aut],
   Nicolas Schmidt [aut, cre],
   Sergio Bejar [aut],
@@ -53,4 +53,4 @@ Author: Brandon L. Bolte [aut],
   Nguyen K. Huynh [ctb]
 Maintainer: Nicolas Schmidt <nschmidt@cienciassociales.edu.uy>
 Repository: CRAN
-Date/Publication: 2020-11-25 05:50:06 UTC
+Date/Publication: 2021-01-08 21:20:02 UTC
