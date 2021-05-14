@@ -36,7 +36,12 @@ formcall <- function(duration,
                      w = c(1, 1, 1),
                      m = 10,
                      form,
-                     prop.var = NULL,
+                     ini.beta =  0,
+                     ini.gamma = 0,
+                     ini.W = 0,
+                     ini.V= 0,
+                     prop.varV = NULL,
+                     prop.varW = NULL,
                      model = character())
 {
 
@@ -54,6 +59,10 @@ formcall <- function(duration,
   burn <-  burn
   if (is.null(w)) w <- c(1,1,1) else w <- w
   if (is.null(m)) m <- 10 else m <- m
+  if (is.null(ini.beta)) ini.beta <- 0 else ini.beta <- ini.beta
+  if (is.null(ini.gamma)) ini.gamma <- 0 else ini.gamma <- ini.gamma
+  if (is.null(ini.W)) ini.W <- 0 else ini.W <- ini.W
+  if (is.null(ini.V)) ini.V <- 0 else ini.V <- ini.V
   form <-  form
   cnx <- colnames(X)
   cnz <- colnames(Z)
@@ -71,11 +80,12 @@ formcall <- function(duration,
     colnames(X) <- cnx
     colnames(Z) <- cnz
     fm <- list(Y = Y, Y0 = Y0, C = C, LY = LY, X = X, Z = Z, N = N, burn = burn,
-               thin = thin, w = w, m = m, form = form)
+               thin = thin, w = w, m = m, ini.beta = ini.beta, ini.gamma = ini.gamma, form = form)
 
   } else {
 
-    prop.var <-  prop.var
+    prop.varV <-  prop.varV
+    prop.varW <-  prop.varW
     S  <- data[, S]
     dataset <- data.frame(cbind(Y, Y0, C, LY, S, X, Z))
     dataset <- na.omit(dataset)
@@ -89,7 +99,8 @@ formcall <- function(duration,
     colnames(X) <- cnx
     colnames(Z) <- cnz
     fm <- list(Y = Y, Y0 = Y0, C = C, LY = LY, X = X, Z = Z, S = S, N = N, burn = burn,
-               thin = thin, w = w, m = m, form = form, prop.var = prop.var)
+               thin = thin, w = w, m = m, ini.beta = ini.beta, ini.gamma = ini.gamma, ini.W = ini.W, ini.V = ini.V,
+               form = form, prop.varV = prop.varV, prop.varW = prop.varW)
 
   }
 
@@ -1434,7 +1445,7 @@ W.post2 = function(S, A, lambda, Y, Y0, X, W, betas, delta, C, LY, rho) {
 # @param delta probability of true censoring
 # @param C censoring indicator
 # @param rho current value of rho
-# @param prop.var proposal variance for Metropolis-Hastings
+# @param prop.varW proposal variance for Metropolis-Hastings
 #
 # @return One sample update using slice sampling
 #
@@ -1451,10 +1462,10 @@ W.MH.sampling = function(S,
                          C,
                          LY,
                          rho,
-                         prop.var) {
+                         prop.varW) {
   S_uniq = unique(cbind(S, W))
   W_old = S_uniq[order(S_uniq[,1]), 2]
-  W_new = rcpp_rmvnorm(1, prop.var * diag(length(W_old)), W_old)
+  W_new = rcpp_rmvnorm(1, prop.varW * diag(length(W_old)), W_old)
   W_new = W_new - mean(W_new)
   u = log(runif(1))
   w1 = W.post(S, A, lambda, Y, Y0,X, W_new[S], betas, delta, C, LY, rho)
@@ -1486,14 +1497,14 @@ W.MH.sampling = function(S,
 # @param delta probability of true censoring
 # @param C censoring indicator
 # @param rho current value of rho
-# @param prop.var proposal variance for Metropolis-Hastings
+# @param prop.varW proposal variance for Metropolis-Hastings
 #
 # @return One sample update using slice sampling
 #
-W.MH.sampling2 = function(S, A, lambda, Y, Y0, X, W, betas, delta, C, LY, rho, prop.var) {
+W.MH.sampling2 = function(S, A, lambda, Y, Y0, X, W, betas, delta, C, LY, rho, prop.varW) {
   S_uniq = unique(cbind(S, W))
   W_old = S_uniq[order(S_uniq[,1]), 2]
-  W_new = rcpp_rmvnorm(1, prop.var * diag(length(W_old)), W_old)
+  W_new = rcpp_rmvnorm(1, prop.varW * diag(length(W_old)), W_old)
   W_new = W_new - mean(W_new)
   u = log(runif(1))
   w1 = W.post2(S, A, lambda, Y, Y0, X, W_new[S], betas, delta, C, LY, rho)
@@ -1589,7 +1600,7 @@ W.F.post2 = function(Sigma.w, S, Y, Y0, X, W, betas, delta, C, LY, rho) {
 # @param delta probability of true censoring
 # @param C censoring indicator
 # @param rho current value of rho
-# @param prop.var proposal variance for Metropolis-Hastings
+# @param prop.varW proposal variance for Metropolis-Hastings
 #
 # @return One sample update using slice sampling
 #
@@ -1605,10 +1616,10 @@ W.F.MH.sampling = function(Sigma.w,
                            C,
                            LY,
                            rho,
-                           prop.var) {
+                           prop.varW) {
   S_uniq = unique(cbind(S, W))
   W_old = S_uniq[order(S_uniq[,1]), 2]
-  W_new = rcpp_rmvnorm(1, prop.var * diag(length(W_old)), W_old)
+  W_new = rcpp_rmvnorm(1, prop.varW * diag(length(W_old)), W_old)
   W_new = W_new - mean(W_new)
   u = log(runif(1))
   w1 = W.F.post(Sigma.w, S, Y, Y0, X, W_new[S], betas, delta, C, LY, rho)
@@ -1635,14 +1646,14 @@ W.F.MH.sampling = function(Sigma.w,
 # @param delta probability of true censoring
 # @param C censoring indicator
 # @param rho current value of rho
-# @param prop.var proposal variance for Metropolis-Hastings
+# @param prop.varW proposal variance for Metropolis-Hastings
 #
 # @return One sample update using slice sampling
 #
-W.F.MH.sampling2 = function(Sigma.w, S, Y, Y0, X, W, betas, delta, C, LY, rho, prop.var) {
+W.F.MH.sampling2 = function(Sigma.w, S, Y, Y0, X, W, betas, delta, C, LY, rho, prop.varW) {
   S_uniq = unique(cbind(S, W))
   W_old = S_uniq[order(S_uniq[,1]), 2]
-  W_new = rcpp_rmvnorm(1, prop.var * diag(length(W_old)), W_old)
+  W_new = rcpp_rmvnorm(1, prop.varW * diag(length(W_old)), W_old)
   W_new = W_new - mean(W_new)
   u = log(runif(1))
   w1 = W.F.post2(Sigma.w, S, Y, Y0, X, W_new[S], betas, delta, C, LY, rho)
@@ -1794,7 +1805,7 @@ V.post2 = function(S, A, lambda, Y, Y0, eXB, Z, V, gammas, C, LY, rho) {
 # @param gammas current value of gammas
 # @param C censoring indicator
 # @param rho current value of rho
-# @param prop.var proposal variance for Metropolis-Hastings
+# @param prop.varV proposal variance for Metropolis-Hastings
 #
 # @return One sample update using slice sampling
 #
@@ -1811,10 +1822,10 @@ V.MH.sampling = function(S,
                          C,
                          LY,
                          rho,
-                         prop.var) {
+                         prop.varV) {
   S_uniq = unique(cbind(S, V))
   V_old = S_uniq[order(S_uniq[,1]), 2]
-  V_new = rcpp_rmvnorm(1, prop.var * diag(length(V_old)), V_old)
+  V_new = rcpp_rmvnorm(1, prop.varV * diag(length(V_old)), V_old)
   V_new = V_new - mean(V_new)
   u = log(runif(1))
   v1 = V.post(S, A, lambda, Y,Y0, eXB, Z, V_new[S], gammas, C, LY, rho)
@@ -1845,14 +1856,14 @@ V.MH.sampling = function(S,
 # @param gammas current value of gammas
 # @param C censoring indicator
 # @param rho current value of rho
-# @param prop.var proposal variance for Metropolis-Hastings
+# @param prop.varV proposal variance for Metropolis-Hastings
 #
 # @return One sample update using slice sampling
 #
-V.MH.sampling2 = function(S, A, lambda, Y, Y0, eXB, Z, V, gammas, C, LY, rho, prop.var) {
+V.MH.sampling2 = function(S, A, lambda, Y, Y0, eXB, Z, V, gammas, C, LY, rho, prop.varV) {
   S_uniq = unique(cbind(S, V))
   V_old = S_uniq[order(S_uniq[,1]), 2]
-  V_new = rcpp_rmvnorm(1, prop.var * diag(length(V_old)), V_old)
+  V_new = rcpp_rmvnorm(1, prop.varV * diag(length(V_old)), V_old)
   V_new = V_new - mean(V_new)
   u = log(runif(1))
   v1 = V.post2(S, A, lambda, Y, Y0, eXB, Z, V_new[S], gammas, C, LY, rho)
@@ -1965,7 +1976,7 @@ V.F.post2 = function(Sigma.v, S, Y, Y0, eXB, Z, V, gammas, C, LY, rho) {
 # @param gammas current value of gammas
 # @param C censoring indicator
 # @param rho current value of rho
-# @param prop.var proposal variance for Metropolis-Hastings
+# @param prop.varV proposal variance for Metropolis-Hastings
 #
 # @return One sample update using slice sampling
 #
@@ -1981,10 +1992,10 @@ V.F.MH.sampling = function(Sigma.v,
                            C,
                            LY,
                            rho,
-                           prop.var) {
+                           prop.varV) {
   S_uniq = unique(cbind(S, V))
   V_old = S_uniq[order(S_uniq[,1]), 2]
-  V_new = rcpp_rmvnorm(1, prop.var * diag(length(V_old)), V_old)
+  V_new = rcpp_rmvnorm(1, prop.varV * diag(length(V_old)), V_old)
   V_new = V_new - mean(V_new)
   u = log(runif(1))
   v1 = V.F.post(Sigma.v,S, Y,Y0, eXB, Z, V_new[S], gammas, C, LY, rho)
@@ -2013,14 +2024,14 @@ V.F.MH.sampling = function(Sigma.v,
 # @param gammas current value of gammas
 # @param C censoring indicator
 # @param rho current value of rho
-# @param prop.var proposal variance for Metropolis-Hastings
+# @param prop.varV proposal variance for Metropolis-Hastings
 #
 # @return One sample update using slice sampling (log likelihood)
 #
-V.F.MH.sampling2 = function(Sigma.v, S,  Y, Y0, eXB, Z, V, gammas, C, LY, rho, prop.var) {
+V.F.MH.sampling2 = function(Sigma.v, S,  Y, Y0, eXB, Z, V, gammas, C, LY, rho, prop.varV) {
   S_uniq = unique(cbind(S, V))
   V_old = S_uniq[order(S_uniq[,1]), 2]
-  V_new = rcpp_rmvnorm(1, prop.var * diag(length(V_old)), V_old)
+  V_new = rcpp_rmvnorm(1, prop.varV * diag(length(V_old)), V_old)
   V_new = V_new - mean(V_new)
   u = log(runif(1))
   v1 = V.F.post2(Sigma.v, S, Y, Y0, eXB, Z, V_new[S], gammas, C, LY, rho)
@@ -2126,17 +2137,17 @@ mcmcSP <- function(Y,
                    thin,
                    w = c(1, 1, 1),
                    m = 10,
-                   form,
-                   propvar) {
+                   ini.beta =  0,
+                   ini.gamma = 0,
+                   form) {
   p1 = dim(X)[2]
   p2 = dim(Z)[2]
   # initial values
-  betas = rep(0, p1)
-  gammas = rep(0, p2)
   rho = 1
-  lambda = 1
+  betas = rep(ini.beta, p1)
+  gammas = rep(ini.gamma, p2)
   W = rep(0, length(Y))
-  V = rep(0, length(Y))
+  #V = rep(0, length(Y))
   delta = exp(Z %*% gammas)/ (1 + exp(Z %*% gammas))
   Sigma.b = 10 * p1 * diag(p1)
   Sigma.g = 10 * p2 * diag(p2)
@@ -2144,7 +2155,11 @@ mcmcSP <- function(Y,
   gammas.samp = matrix(NA, nrow = (N - burn) / thin, ncol = p2)
   rho.samp = rep(NA, (N - burn) / thin)
   delta.samp = rep(NA, (N - burn) / thin)
-  for (iter in 1:N) {
+
+  pb <- progress::progress_bar$new(total = N)
+    for (iter in 1:N) {
+    pb$tick()
+    Sys.sleep(1/N)
     # if (iter %% 1000 == 0) print(iter) #### ***** #### ***** #### ***** #### ***** ####
     if (iter > burn) {
       Sigma.b = riwish(1 + p1, betas %*% t(betas) + p1 * diag(p1))
@@ -2172,8 +2187,9 @@ mcmcSP <- function(Y,
   }
   colnames(betas.samp)  <- colnames(X) #adc
   colnames(gammas.samp) <- colnames(Z) #adc
-  return(list(betas = betas.samp, gammas = gammas.samp, rho = rho.samp, delta = delta.samp,
-              spstats = list(X = X, Z = Z, Y = Y,  Y0 = Y0, C = C, form = form)))
+  return(list(betas   = betas.samp, gammas = gammas.samp, rho = rho.samp, delta = delta.samp,
+              spstats = list(X = X, Z = Z, Y = Y,  Y0 = Y0, C = C, form = form),
+              initial = list(ini.beta = ini.beta, ini.gamma = ini.gamma)))
 }
 
 # @title mcmcSPlog
@@ -2193,23 +2209,41 @@ mcmcSP <- function(Y,
 #
 # @return chain of the variables of interest
 #
-mcmcSPlog <- function(Y, C, Y0, X, LY, Z, N, burn, thin, w = c(1, 1, 1), m, form) {
+mcmcSPlog <- function(Y,
+                      C,
+                      Y0,
+                      X,
+                      LY,
+                      Z,
+                      N,
+                      burn,
+                      thin,
+                      w = c(1, 1, 1),
+                      m,
+                      ini.beta =  0,
+                      ini.gamma = 0,
+                      ini.W = 0,
+                      ini.V= 0,
+                      form) {
   p1 = dim(X)[2]
   p2 = dim(Z)[2]
   # initial values
-  betas = rep(0, p1)
-  gammas = rep(0, p2)
   rho = 1
-  lambda = 1
+  betas = rep(ini.beta, p1)
+  gammas = rep(ini.gamma, p2)
   W = rep(0, length(Y))
-  V = rep(0, length(Y))
+  #V = rep(0, length(Y))
   delta = exp(Z %*% gammas)/ (1 + exp(Z %*% gammas))
   Sigma.b = 5 * p1 * diag(p1)
   Sigma.g = 5 * p2 * diag(p2)
   betas.samp = matrix(NA, nrow = (N - burn) / thin, ncol = p1)
   gammas.samp = matrix(NA, nrow = (N - burn) / thin, ncol = p2)
   rho.samp = rep(NA, (N - burn) / thin)
+
+  pb <- progress::progress_bar$new(total = N)
   for (iter in 1:N) {
+    pb$tick()
+    Sys.sleep(1/N)
     #if (iter %% 1000 == 0) print(iter) #F #### ***** #### ***** #### ***** #### ***** ####
     if (iter > burn) {
       Sigma.b = riwish(1 + p1, betas %*% t(betas) + p1 * diag(p1))
@@ -2235,8 +2269,9 @@ mcmcSPlog <- function(Y, C, Y0, X, LY, Z, N, burn, thin, w = c(1, 1, 1), m, form
   }
   colnames(betas.samp)  <- colnames(X) #adc
   colnames(gammas.samp) <- colnames(Z) #adc
-  return(list(betas = betas.samp, gammas = gammas.samp, rho = rho.samp,
-              spstats = list(X = X, Z = Z, Y = Y,  Y0 = Y0, C = C, form = form)))
+  return(list(betas   = betas.samp, gammas = gammas.samp, rho = rho.samp,
+              spstats = list(X = X, Z = Z, Y = Y,  Y0 = Y0, C = C, form = form),
+              initial = list(ini.beta = ini.beta, ini.gamma = ini.gamma)))
 }
 
 
@@ -2258,7 +2293,8 @@ mcmcSPlog <- function(Y, C, Y0, X, LY, Z, N, burn, thin, w = c(1, 1, 1), m, form
 # @param w size of the slice in the slice sampling for (betas, gammas, rho)
 # @param m limit on steps in the slice sampling. A vector of values for beta, gamma, rho.
 # @param form type of parametric model (Exponential or Weibull)
-# @param prop.var proposal variance for Metropolis-Hastings
+# @param prop.varV proposal variance for Metropolis-Hastings
+# @param prop.varW proposal variance for Metropolis-Hastings
 #
 # @return chain of the variables of interest
 #
@@ -2275,18 +2311,22 @@ mcmcspatialSP <- function(Y,
                           burn,
                           thin, w = c(1, 1, 1),
                           m = 10,
+                          ini.beta =  0,
+                          ini.gamma = 0,
+                          ini.W = 0,
+                          ini.V= 0,
                           form,
-                          prop.var,
+                          prop.varV,
+                          prop.varW,
                           id_WV) {
   p1 = dim(X)[2]
   p2 = dim(Z)[2]
   # initial values
-  betas = rep(0, p1)
-  gammas = rep(0, p2)
   rho = 1
-  lambda = 1
-  W = rep(0, length(Y))
-  V = rep(0, length(Y))
+  betas = rep(ini.beta, p1)
+  gammas = rep(ini.gamma, p2)
+  W = rep(ini.W, length(Y))
+  V = rep(ini.V, length(Y))
   delta = exp(Z %*% gammas + V)/ (1 + exp(Z %*% gammas + V))
   Sigma.b = 10 * p1 * diag(p1)
   Sigma.g = 10 * p2 * diag(p2)
@@ -2297,7 +2337,11 @@ mcmcspatialSP <- function(Y,
   delta.samp = rep(NA, (N - burn) / thin)
   W.samp = matrix(NA, nrow = (N - burn) / thin, ncol = nrow(A))
   V.samp = matrix(NA, nrow = (N - burn) / thin, ncol = nrow(A))
+
+  pb <- progress::progress_bar$new(total = N)
   for (iter in 1:N) {
+    pb$tick()
+    Sys.sleep(1/N)
     #if (iter %% 1000 == 0) print(iter) #### ***** #### ***** #### ***** #### ***** ####
     if (iter > burn) {
       Sigma.b = riwish(1 + p1, betas %*% t(betas) + p1 * diag(p1))
@@ -2305,10 +2349,10 @@ mcmcspatialSP <- function(Y,
     }
     #CAR model
     lambda = lambda.gibbs.sampling2(S, A, W, V)
-    W = W.MH.sampling(S, A, lambda, Y, Y0,X, W, betas, delta, C, LY, rho, prop.var)
+    W = W.MH.sampling(S, A, lambda, Y, Y0,X, W, betas, delta, C, LY, rho, prop.varW)
     betas = betas.slice.sampling(Sigma.b, Y, Y0,X, W, betas, delta, C, LY, rho, w[1], m, form = form)
     eXB = exp(-(X %*% betas) + W)
-    V = V.MH.sampling(S, A, lambda, Y,Y0, eXB, Z, V, gammas, C, LY, rho, prop.var)
+    V = V.MH.sampling(S, A, lambda, Y,Y0, eXB, Z, V, gammas, C, LY, rho, prop.varV)
  	  gammas = gammas.slice.sampling2(Sigma.g, Y, Y0,eXB, Z, V, gammas, C, LY, rho, w[2], m, form = form)
  	  num = exp(Z %*% gammas + V)
  	  num[which(is.infinite(num))] <- exp(700)
@@ -2337,9 +2381,9 @@ mcmcspatialSP <- function(Y,
   colnames(W.samp) <- id_WV #colnames(A)           #ADC
   colnames(betas.samp)  <- colnames(X) #adc
   colnames(gammas.samp) <- colnames(Z) #adc
-  return(list(betas = betas.samp, gammas = gammas.samp, rho = rho.samp, lambda = lambda.samp,
-              delta = delta.samp, W = W.samp, V = V.samp,
-              spstats = list(X = X, Z = Z, Y = Y,  Y0 = Y0, C = C, S = S, form = form)))
+  return(list(betas   = betas.samp, gammas = gammas.samp, rho = rho.samp, lambda = lambda.samp, delta = delta.samp, W = W.samp, V = V.samp,
+              spstats = list(X = X, Z = Z, Y = Y,  Y0 = Y0, C = C, S = S, form = form),
+              initial = list(ini.beta = ini.beta, ini.gamma = ini.gamma, ini.W = ini.W, ini.V  = ini.V)))
 }
 
 
@@ -2359,7 +2403,8 @@ mcmcspatialSP <- function(Y,
 # @param w size of the slice in the slice sampling for (betas, gammas, rho)
 # @param m limit on steps in the slice sampling
 # @param form type of parametric model (Exponential or Weibull)
-# @param prop.var proposal variance for Metropolis-Hastings
+# @param prop.varV proposal variance for Metropolis-Hastings
+# @param prop.varW proposal variance for Metropolis-Hastings
 #
 # @return chain of the variables of interest
 #
@@ -2377,18 +2422,22 @@ mcmcSpatialLog <- function(Y,
                            thin,
                            w = c(1, 1, 1),
                            m,
+                           ini.beta =  0,
+                           ini.gamma = 0,
+                           ini.W = 0,
+                           ini.V= 0,
                            form,
-                           prop.var = .00001,
+                           prop.varV = .00001,
+                           prop.varW = .00001,
                            id_WV) {
   p1 = dim(X)[2]
   p2 = dim(Z)[2]
   # initial values
-  betas = rep(0, p1)
-  gammas = rep(0, p2)
   rho = 1
-  lambda = 1
-  W = rep(0, length(Y))
-  V = rep(0, length(Y))
+  betas = rep(ini.beta, p1)
+  gammas = rep(ini.gamma, p2)
+  W = rep(ini.W, length(Y))
+  V = rep(ini.V, length(Y))
   delta = exp(Z %*% gammas + V)/ (1 + exp(Z %*% gammas + V))
   #delta = 1/(1 + exp(-Z %*% gammas + V))
   Sigma.b = 5 * p1 * diag(p1)
@@ -2400,7 +2449,11 @@ mcmcSpatialLog <- function(Y,
   delta.samp = rep(NA, (N - burn) / thin)
   W.samp = matrix(NA, nrow = (N - burn) / thin, ncol = nrow(A))
   V.samp = matrix(NA, nrow = (N - burn) / thin, ncol = nrow(A))
+
+  pb <- progress::progress_bar$new(total = N)
   for (iter in 1:N) {
+    pb$tick()
+    Sys.sleep(1/N)
     #if (iter %% 1000 == 0) print(iter) #### ***** #### ***** #### ***** #### ***** ####
     if (iter > burn) {
       Sigma.b = riwish(1 + p1, betas %*% t(betas) + p1 * diag(p1))
@@ -2408,10 +2461,10 @@ mcmcSpatialLog <- function(Y,
     }
     #CAR model
     lambda = lambda.gibbs.sampling2(S, A, W, V)
-    W = W.MH.sampling2(S, A, lambda, Y, Y0, X, W, betas, delta, C, LY, rho, prop.var)
+    W = W.MH.sampling2(S, A, lambda, Y, Y0, X, W, betas, delta, C, LY, rho, prop.varW)
     betas = betas.slice.sampling2(Sigma.b, Y, Y0, X, W, betas, delta, C, LY, rho, w[1], m, form = form)
     eXB = exp((X %*% betas) + W)
-    V = V.MH.sampling2(S, A, lambda, Y, Y0, eXB, Z, V, gammas, C,  LY, rho, prop.var)
+    V = V.MH.sampling2(S, A, lambda, Y, Y0, eXB, Z, V, gammas, C,  LY, rho, prop.varV)
     gammas = gammas.slice.sampling4(Sigma.g, Y, Y0, eXB, Z, V, gammas, C,  LY, rho, w[2], m, form = form)
     num = exp(Z %*% gammas + V)
     num[which(is.infinite(num))] <- exp(700)
@@ -2442,8 +2495,9 @@ mcmcSpatialLog <- function(Y,
   colnames(W.samp) <- id_WV #colnames(A)           #ADC
   colnames(betas.samp)  <- colnames(X) #adc
   colnames(gammas.samp) <- colnames(Z) #adc
-  return(list(betas = betas.samp, gammas = gammas.samp, rho = rho.samp, delta= delta.samp, lambda = lambda.samp, W = W.samp, V = V.samp,
-              spstats = list(X = X, Z = Z, Y = Y,  Y0 = Y0, C = C, S = S, form = form)))
+  return(list(betas   = betas.samp, gammas = gammas.samp, rho = rho.samp, delta= delta.samp, lambda = lambda.samp, W = W.samp, V = V.samp,
+              spstats = list(X = X, Z = Z, Y = Y,  Y0 = Y0, C = C, S = S, form = form),
+              initial = list(ini.beta = ini.beta, ini.gamma = ini.gamma, ini.W = ini.W, ini.V  = ini.V)))
 }
 
 
@@ -2465,7 +2519,8 @@ mcmcSpatialLog <- function(Y,
 # @param w size of the slice in the slice sampling for (betas, gammas, rho)
 # @param m limit on steps in the slice sampling. A vector of values for beta, gamma, rho.
 # @param form type of parametric model (Exponential or Weibull)
-# @param prop.var proposal variance for Metropolis-Hastings
+# @param prop.varV proposal variance for Metropolis-Hastings
+# @param prop.varW proposal variance for Metropolis-Hastings
 #
 # @return chain of the variables of interest
 #
@@ -2481,22 +2536,27 @@ mcmcfrailtySP <- function(Y,
                           burn,
                           thin, w = c(1, 1, 1),
                           m,
+                          ini.beta =  0,
+                          ini.gamma = 0,
+                          ini.W = 0,
+                          ini.V= 0,
                           form,
-                          prop.var,
+                          prop.varV,
+                          prop.varW,
                           id_WV) {
   p1 = dim(X)[2]
   p2 = dim(Z)[2]
   p3 = length(unique(S))
   p4 = length(unique(S))
   # initial values
-  betas = rep(0, p1)
-  gammas = rep(0, p2)
   rho = 1
   lambda = 1
-  W = rep(0, length(Y))
-  V = rep(0, length(Y))
-  WS = rep(0, p3)
-  VS = rep(0, p4)
+  betas = rep(ini.beta, p1)
+  gammas = rep(ini.gamma, p2)
+  W = rep(ini.W, length(Y))
+  V = rep(ini.V, length(Y))
+  WS = rep(ini.W, p3)
+  VS = rep(ini.V, p4)
   delta = exp(Z %*% gammas + V)/ (1 + exp(Z %*% gammas + V))
   Sigma.b = 10 * p1 * diag(p1)
   Sigma.g = 10 * p2 * diag(p2)
@@ -2509,7 +2569,11 @@ mcmcfrailtySP <- function(Y,
   delta.samp = rep(NA, (N - burn) / thin)
   W.samp = matrix(NA, nrow = (N - burn) / thin, ncol = length(unique(S)))
   V.samp = matrix(NA, nrow = (N - burn) / thin, ncol = length(unique(S)))
+
+  pb <- progress::progress_bar$new(total = N)
   for (iter in 1:N) {
+    pb$tick()
+    Sys.sleep(1/N)
     #if (iter %% 1000 == 0) print(iter) #### ***** #### ***** #### ***** #### ***** ####
     if (iter > burn) {
       Sigma.b = riwish(1 + p1, betas %*% t(betas) + p1 * diag(p1))
@@ -2518,10 +2582,10 @@ mcmcfrailtySP <- function(Y,
       Sigma.v = riwish(1 + p4, VS %*% t(VS) + p4 * diag(p4))
     }
     #non-spatial Frailty model
-    W = W.F.MH.sampling(Sigma.w, S,Y, Y0,X, W, betas, delta, C, LY, rho, prop.var)
+    W = W.F.MH.sampling(Sigma.w, S,Y, Y0,X, W, betas, delta, C, LY, rho, prop.varW)
     betas = betas.slice.sampling(Sigma.b, Y, Y0,X, W, betas, delta, C, LY, rho, w[1], m, form = form)
     eXB = exp(-(X %*% betas) + W)
-    V = V.F.MH.sampling(Sigma.v, S, Y,Y0, eXB, Z, V, gammas, C, LY, rho, prop.var)
+    V = V.F.MH.sampling(Sigma.v, S, Y,Y0, eXB, Z, V, gammas, C, LY, rho, prop.varV)
     gammas = gammas.slice.sampling2(Sigma.g, Y, Y0,eXB, Z, V, gammas, C, LY, rho, w[2], m, form = form)
     num = exp(Z %*% gammas + V)
     num[which(is.infinite(num))] <- exp(700)
@@ -2550,8 +2614,9 @@ mcmcfrailtySP <- function(Y,
   colnames(W.samp) <- id_WV #colnames(A)           #ADC
   colnames(betas.samp)  <- colnames(X) #adc
   colnames(gammas.samp) <- colnames(Z) #adc
-  return(list(betas = betas.samp, gammas = gammas.samp, rho = rho.samp, lambda = lambda.samp, delta = delta.samp, W = W.samp, V = V.samp,
-         spstats = list(X = X, Z = Z, Y = Y,  Y0 = Y0, C = C, S = S, form = form)))
+  return(list(betas   = betas.samp, gammas = gammas.samp, rho = rho.samp, lambda = lambda.samp, delta = delta.samp, W = W.samp, V = V.samp,
+              spstats = list(X = X, Z = Z, Y = Y,  Y0 = Y0, C = C, S = S, form = form),
+              initial = list(ini.beta = ini.beta, ini.gamma = ini.gamma, ini.W = ini.W, ini.V  = ini.V)))
 }
 
 # @title mcmc Cure with Non-spatial frailties
@@ -2568,7 +2633,8 @@ mcmcfrailtySP <- function(Y,
 # @param w size of the slice in the slice sampling for (betas, gammas, rho)
 # @param m limit on steps in the slice sampling
 # @param form type of parametric model (Exponential or Weibull)
-# @param prop.var proposal variance for Metropolis-Hastings
+# @param prop.varV proposal variance for Metropolis-Hastings
+# @param prop.varW proposal variance for Metropolis-Hastings
 #
 # @return chain of the variables of interest
 #
@@ -2585,24 +2651,30 @@ mcmcfrailtySPlog <- function(Y,
                              thin,
                              w = c(1, 1, 1),
                              m = 10,
+                             ini.beta =  0,
+                             ini.gamma = 0,
+                             ini.W = 0,
+                             ini.V= 0,
                              form,
-                             prop.var= .00001,
+                             prop.varV = .00001,
+                             prop.varW = .00001,
                              id_WV) {
   p1 = dim(X)[2]
   p2 = dim(Z)[2]
   p3 = length(unique(S))
   p4 = length(unique(S))
   # initial values
-  betas = rep(0, p1)
-  gammas = rep(0, p2)
   rho = 1
   lambda = 1
-  W = rep(0, length(Y))
-  V = rep(0, length(Y))
-  WS = rep(0, p3)
-  VS = rep(0, p4)
+  betas = rep(ini.beta, p1)
+  gammas = rep(ini.gamma, p2)
+  W = rep(ini.W, length(Y))
+  V = rep(ini.V, length(Y))
+  WS = rep(ini.W, p3)
+  VS = rep(ini.V, p4)
   delta = exp(Z %*% gammas + V)/ (1 + exp(Z %*% gammas + V))
-  prop.var = prop.var
+  prop.varV = prop.varV
+  prop.varW = prop.varW
   #delta = 1/(1 + exp(-Z %*% gammas + V))
   Sigma.b = 5 * p1 * diag(p1)
   Sigma.g = 5 * p2 * diag(p2)
@@ -2615,7 +2687,11 @@ mcmcfrailtySPlog <- function(Y,
   delta.samp = rep(NA, (N - burn) / thin)
   W.samp = matrix(NA, nrow = (N - burn) / thin, ncol = length(unique(S)))
   V.samp = matrix(NA, nrow = (N - burn) / thin, ncol = length(unique(S)))
+
+  pb <- progress::progress_bar$new(total = N)
   for (iter in 1:N) {
+    pb$tick()
+    Sys.sleep(1/N)
     #if (iter %% 1000 == 0) print(iter) #### ***** #### ***** #### ***** #### ***** ####
     if (iter > burn) {
       Sigma.b = riwish(1 + p1, betas %*% t(betas) + p1 * diag(p1))
@@ -2624,10 +2700,10 @@ mcmcfrailtySPlog <- function(Y,
       Sigma.v = riwish(1 + p4, VS %*% t(VS) + p4 * diag(p4))
     }
     #non-spatial Frailty model.
-    W = W.F.MH.sampling2(Sigma.w, S,Y, Y0, X, W, betas, delta, C, LY, rho, prop.var)
+    W = W.F.MH.sampling2(Sigma.w, S,Y, Y0, X, W, betas, delta, C, LY, rho, prop.varW)
     betas = betas.slice.sampling2(Sigma.b, Y, Y0, X, W, betas, delta, C, LY, rho, w[1], m, form = form)
     eXB = exp(-(X %*% betas) + W)
-    V = V.F.MH.sampling2(Sigma.v, S, Y, Y0, eXB, Z, V, gammas, C, LY, rho, prop.var)
+    V = V.F.MH.sampling2(Sigma.v, S, Y, Y0, eXB, Z, V, gammas, C, LY, rho, prop.varV)
     gammas = gammas.slice.sampling4(Sigma.g, Y, Y0, eXB, Z, V, gammas, C, LY, rho, w[2], m, form = form)
     num = exp(Z %*% gammas + V)
     num[which(is.infinite(num))] <- exp(700)
@@ -2656,8 +2732,9 @@ mcmcfrailtySPlog <- function(Y,
   colnames(W.samp) <- id_WV #colnames(A)           #ADC
   colnames(betas.samp)  <- colnames(X) #adc
   colnames(gammas.samp) <- colnames(Z) #adc
-  return(list(betas = betas.samp, gammas = gammas.samp, rho = rho.samp, lambda = lambda.samp, delta = delta.samp, W = W.samp, V = V.samp,
-         spstats = list(X = X, Z = Z, Y = Y,  Y0 = Y0, C = C, S = S, form = form)))
+  return(list(betas   = betas.samp, gammas = gammas.samp, rho = rho.samp, lambda = lambda.samp, delta = delta.samp, W = W.samp, V = V.samp,
+              spstats = list(X = X, Z = Z, Y = Y,  Y0 = Y0, C = C, S = S, form = form),
+              initial = list(ini.beta = ini.beta, ini.gamma = ini.gamma, ini.W = ini.W, ini.V  = ini.V)))
 }
 
 

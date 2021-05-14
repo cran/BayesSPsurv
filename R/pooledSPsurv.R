@@ -11,6 +11,8 @@
 #' @param thin thinning to prevent from autocorrelation.
 #' @param w size of the slice in the slice sampling for (betas, gammas, rho). Write it as a vector. E.g. c(1,1,1).
 #' @param m limit on steps in the slice sampling. A vector of values for beta, gamma, rho.
+#' @param ini.beta initial value for the parameter vector beta.  By default is 0.
+#' @param ini.gamma initial value for the parameter vector gamma. By default is 0.
 #' @param form type of parametric model (Weibull, Exponential, or Log-Logistic).
 #'
 #' @return pooledSPsurv returns an object of class \code{"SPsurv"}.
@@ -25,6 +27,8 @@
 #' \item{Y}{vector of `Y'.}
 #' \item{Y0}{vector of `Y0'.}
 #' \item{C}{vector of `C'.}
+#' \item{ini.beta}{numeric initial value of beta.}
+#' \item{ini.gamma}{numeric initial value of gamma.}
 #' \item{form}{character, type of distribution.}
 #' \item{call}{description for the model to be estimated.}
 #'
@@ -39,7 +43,7 @@
 #' model <-
 #'     pooledSPsurv(
 #'         duration = duration ~ fhcompor1 + lgdpl + comprehensive + victory +
-#'             instabl + intensityln + ethfrac + unpko,
+#'                    instabl + intensityln + ethfrac + unpko,
 #'         immune   = cured ~ fhcompor1 + lgdpl + victory,
 #'         Y0       = 't.0',
 #'         LY       = 'lastyear',
@@ -74,6 +78,8 @@ pooledSPsurv <- function(duration,
                   thin,
                   w = c(1, 1, 1),
                   m = 10,
+                  ini.beta =  0,
+                  ini.gamma = 0,
                   form = c('Weibull', 'exponential', 'loglog'))
 {
 
@@ -81,15 +87,18 @@ pooledSPsurv <- function(duration,
     model <- 'SPsurv'
     r   <- formcall(duration = duration, immune = immune, data = data, Y0 = Y0,
                     LY = LY, N = N, burn = burn, thin = thin, w = w,
-                    m = m, form = dis, model = model)
+                    m = m, ini.beta = ini.beta, ini.gamma = ini.gamma,
+                    form = dis, model = model)
 
     if(form == 'loglog') {
         results <- mcmcSPlog(Y = r$Y, Y0 = r$Y0, C = r$C, LY = r$LY, X = r$X, Z = r$Z,
                           N = r$N, burn = r$burn, thin = r$thin, w  = r$w, m  = r$m,
+                          ini.beta = r$ini.beta, ini.gamma = r$ini.gamma,
                           form = r$form)
     } else {
         results <- mcmcSP(Y = r$Y, Y0 = r$Y0, C = r$C, LY = r$LY, X = r$X, Z = r$Z,
                       N = r$N, burn = r$burn, thin = r$thin, w  = r$w, m  = r$m,
+                      ini.beta = r$ini.beta, ini.gamma = r$ini.gamma,
                       form = r$form)
     }
 
@@ -139,7 +148,7 @@ print.SPsurv <- function(x, ...){
     cat('Duration equation: \n')
     print(summary(x, parameter = 'betas')$statistics)
     cat('\n')
-    cat('Inmune equation: \n')
+    cat('Immune equation: \n')
     print(summary(x, parameter = 'gammas')$statistics)
     cat('\n')
 

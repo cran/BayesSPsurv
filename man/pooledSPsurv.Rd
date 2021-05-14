@@ -18,6 +18,8 @@ pooledSPsurv(
   thin,
   w = c(1, 1, 1),
   m = 10,
+  ini.beta = 0,
+  ini.gamma = 0,
   form = c("Weibull", "exponential", "loglog")
 )
 
@@ -48,6 +50,10 @@ pooledSPsurv(
 
 \item{m}{limit on steps in the slice sampling. A vector of values for beta, gamma, rho.}
 
+\item{ini.beta}{initial value for the parameter vector beta.  By default is 0.}
+
+\item{ini.gamma}{initial value for the parameter vector gamma. By default is 0.}
+
 \item{form}{type of parametric model (Weibull, Exponential, or Log-Logistic).}
 
 \item{object}{an object of class \code{SPsurv}, the output of \code{\link{pooledSPsurv}}.}
@@ -71,6 +77,8 @@ A \code{"pooledSPsurv"} object has the following elements:
 \item{Y}{vector of `Y'.}
 \item{Y0}{vector of `Y0'.}
 \item{C}{vector of `C'.}
+\item{ini.beta}{numeric initial value of beta.}
+\item{ini.gamma}{numeric initial value of gamma.}
 \item{form}{character, type of distribution.}
 \item{call}{description for the model to be estimated.}
 
@@ -98,7 +106,7 @@ set.seed(123456)
 model <-
     pooledSPsurv(
         duration = duration ~ fhcompor1 + lgdpl + comprehensive + victory +
-            instabl + intensityln + ethfrac + unpko,
+                   instabl + intensityln + ethfrac + unpko,
         immune   = cured ~ fhcompor1 + lgdpl + victory,
         Y0       = 't.0',
         LY       = 'lastyear',
